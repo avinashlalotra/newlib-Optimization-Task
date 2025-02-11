@@ -1,50 +1,44 @@
 .section .text
-.global memset_bonus
+.global memset
+memset:
+    mv t1, a0             # t1 = pointer
+    beqz a2, end          # Early exit if size=0
 
-memset_bonus: # a0 = ptr, a1 = value, a2 = size
-    beqz a2, end      # If n == 0, return
-    mv t1, a0         # Copy ptr to t1
-
-    # Create 32-bit pattern
-    slli s4, a1, 8
-    or s4, s4, a1
-    slli s4, s4, 16
-    or s4, s4, a1
-
-    # Misalignment handling
-    andi s3, t1, 3    # Check alignment (t1 % 4)
-    beqz s3, word_loop # If already aligned, jump to word loop
+    # Align pointer to 4 bytes if needed
+    andi t0, t1, 3        
+    beqz t0, aligned   
 
 align_loop:
-    sb a1, 0(t1)      # Store one byte
-    addi t1, t1, 1    # Increment pointer
-    addi a2, a2, -1   # Decrement count
-    andi s3, t1, 3    # Check alignment
-    bnez s3, align_loop # Repeat until aligned
-    beqz a2, end      # If size is exhausted, return
+    sb a1, 0(t1)          
+    addi t1, t1, 1        
+    addi a2, a2, -1       
+    andi t0, t1, 3        
+    bnez t0, align_loop    
+    beqz a2, end         
 
-# Word store loop
+aligned:
+    slli t3, a1, 8       
+    or t3, t3, a1        
+    slli t4, t3, 16      
+    or t3, t3, t4         
+
+    
+    srli t2, a2, 2     
+    andi a2, a2, 3       
+
 word_loop:
-    srli s1, a2, 2    # Number of full words (n / 4)
-    andi s2, a2, 3    # Remaining bytes (n % 4)
-    beqz s1, byte_loop # If no words to write, jump to byte loop
+    beqz t2, byte_loop  
+    sw t3, 0(t1)          
+    addi t1, t1, 4        
+    addi t2, t2, -1       
+    j word_loop
 
-word_store:
-    sw s4, 0(t1)      # Store 4 bytes
-    addi t1, t1, 4    # Increment pointer
-    addi s1, s1, -1   # Decrement word count
-    bnez s1, word_store # Repeat until all words are stored
-
-# Byte copy loop (for remaining bytes)
 byte_loop:
-    beqz s2, end      # If no remaining bytes, return
-
-byte_store:
-    sb a1, 0(t1)      # Store one byte
-    addi t1, t1, 1    # Increment pointer
-    addi s2, s2, -1   # Decrement count
-    bnez s2, byte_store # Repeat until all bytes are stored
+    beqz a2, end          
+    sb a1, 0(t1)          
+    addi t1, t1, 1
+    addi a2, a2, -1
+    j byte_loop
 
 end:
     ret
-
