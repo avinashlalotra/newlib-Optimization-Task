@@ -5,7 +5,6 @@ memset: # a0=ptr, a1=x, a2=n
     beqz a2, end          # Early exit if size=0
 
     # Expand byte x to 32-bit
-
     slli t2, a1, 8    
     or t2, t2, a1         
     slli t3, t2, 16    
